@@ -125,7 +125,7 @@
             
             // Create scheme states
             const [newSchemeName, setNewSchemeName] = useState('');
-            const [newSchemeEmoji, setNewSchemeEmoji] = useState('🧸');
+            const [newSchemeEmoji, setNewSchemeEmoji] = useState('');
             const [newSchemeDifficulty, setNewSchemeDifficulty] = useState('Средний');
             const [schemeParts, setSchemeParts] = useState([]);
             const [currentPartName, setCurrentPartName] = useState('');
@@ -822,6 +822,18 @@
                 setRows(manualRows);
                 
                 setSchemeMode('main');
+            };
+            
+            const startSchemeCreation = () => {
+                // Сохраняем текущие ряды manual
+                saveRowsForScheme(currentSchemeId, rows);
+                
+                // Переключаемся на режим создания схемы с пустыми рядами
+                setCurrentSchemeId('scheme_creating');
+                setRows([]);
+                setCurrentRowPattern([]);
+                setCurrentRowNumber(1);
+                setSchemeMode('create-scheme');
             };
             
             // Scheme functions
@@ -1654,7 +1666,7 @@
                                         <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3">📚 Схемы животных</h2>
                                         <div className="space-y-2">
                                             <button onClick={() => setSchemeMode('library')} className="w-full bg-gradient-to-r from-pink-100 to-purple-100 hover:from-pink-200 hover:to-purple-200 text-purple-700 rounded-2xl py-3 font-semibold text-base">Открыть библиотеку схем</button>
-                                            <button onClick={() => setSchemeMode('create-scheme')} className="w-full bg-gradient-to-r from-blue-100 to-teal-100 hover:from-blue-200 hover:to-teal-200 text-teal-700 rounded-2xl py-3 font-semibold text-base">Создать новую схему</button>
+                                            <button onClick={startSchemeCreation} className="w-full bg-gradient-to-r from-blue-100 to-teal-100 hover:from-blue-200 hover:to-teal-200 text-teal-700 rounded-2xl py-3 font-semibold text-base">Создать новую схему</button>
                                         </div>
                                     </div>
                                 )}
@@ -1734,11 +1746,34 @@
                                                             value={elem.repeatCount || 1}
                                                             onChange={(e) => {
                                                                 const val = e.target.value;
-                                                                if (val === '') return;
-                                                                updateElementRepeatCount(idx, parseInt(val) || 1);
+                                                                // Разрешаем пустое поле во время ввода
+                                                                if (val === '') {
+                                                                    const updated = [...currentRowPattern];
+                                                                    updated[idx] = { ...updated[idx], repeatCount: '' };
+                                                                    setCurrentRowPattern(updated);
+                                                                    return;
+                                                                }
+                                                                const num = parseInt(val);
+                                                                if (num >= 1) {
+                                                                    updateElementRepeatCount(idx, num);
+                                                                }
                                                             }}
-                                                            onBlur={() => setEditingElementIndex(null)}
-                                                            onKeyPress={(e) => e.key === 'Enter' && setEditingElementIndex(null)}
+                                                            onBlur={() => {
+                                                                // При потере фокуса устанавливаем минимум 1
+                                                                if (!currentRowPattern[idx].repeatCount || currentRowPattern[idx].repeatCount < 1) {
+                                                                    updateElementRepeatCount(idx, 1);
+                                                                }
+                                                                setEditingElementIndex(null);
+                                                            }}
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    if (!currentRowPattern[idx].repeatCount || currentRowPattern[idx].repeatCount < 1) {
+                                                                        updateElementRepeatCount(idx, 1);
+                                                                    }
+                                                                    setEditingElementIndex(null);
+                                                                }
+                                                            }}
+                                                            onFocus={(e) => e.target.select()}
                                                             autoFocus
                                                             className="w-12 text-center border-b-2 border-purple-600 bg-transparent focus:outline-none"
                                                             min="1"
