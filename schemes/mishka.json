@@ -1,0 +1,46 @@
+{
+  "id": "mishka",
+  "name": "Мишка Тедди",
+  "emoji": "🐻",
+  "difficulty": "Средний",
+  "parts": [
+    {
+      "partName": "Голова",
+      "quantity": 1,
+      "rows": [
+        {
+          "rowNumber": 1,
+          "pattern": [
+            {"type": "сбн", "stitches": 6, "balance": 0, "outputStitches": 6}
+          ],
+          "manualStitches": 6
+        },
+        {
+          "rowNumber": 2,
+          "pattern": [
+            {"type": "пр", "stitches": 6, "balance": 6, "outputStitches": 12}
+          ]
+        }
+      ]
+    },
+    {
+      "partName": "Лапа",
+      "quantity": 4,
+      "rows": [
+        {
+          "rowNumber": 1,
+          "pattern": [
+            {"type": "сбн", "stitches": 4, "balance": 0, "outputStitches": 4}
+          ],
+          "manualStitches": 4
+        },
+        {
+          "rowNumber": 2,
+          "pattern": [
+            {"type": "пр", "stitches": 4, "balance": 4, "outputStitches": 8}
+          ]
+        }
+      ]
+    }
+  ]
+}

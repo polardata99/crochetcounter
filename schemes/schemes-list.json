@@ -1,0 +1,12 @@
+{
+  "schemes": [
+    {
+      "id": "mishka",
+      "name": "Мишка Тедди",
+      "emoji": "🐻",
+      "difficulty": "Средний",
+      "totalParts": 4,
+      "totalRows": 10
+    }
+  ]
+}
