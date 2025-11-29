@@ -154,7 +154,7 @@
             
             // Auto-save rows when they change
             useEffect(() => {
-                if (rows.length > 0 || currentSchemeId) {
+                if (currentSchemeId) {
                     saveRowsForScheme(currentSchemeId, rows);
                 }
             }, [rows, currentSchemeId]);
@@ -163,6 +163,9 @@
             useEffect(() => {
                 const savedRows = loadRowsForScheme('manual');
                 if (savedRows.length > 0) {
+                    setRows(savedRows);
+                }
+            }, []);
                     setRows(savedRows);
                 }
             }, []);
@@ -496,13 +499,18 @@
                     };
                     
                     // При редактировании вставляем на правильное место
+                    let updatedRows;
                     if (isEditingRow && editingRowNumber !== null) {
-                        const updatedRows = [...rows];
+                        updatedRows = [...rows];
                         updatedRows.splice(editingRowNumber, 0, newRow);
                         setRows(updatedRows);
                     } else {
-                        setRows([...rows, newRow]);
+                        updatedRows = [...rows, newRow];
+                        setRows(updatedRows);
                     }
+                    
+                    // Явно сохраняем
+                    saveRowsForScheme(currentSchemeId, updatedRows);
                     
                     setCurrentRowPattern([]);
                     setRepeatCount(1);
@@ -520,7 +528,11 @@
                 }
             };
 
-            const deleteRow = (index) => setRows(rows.filter((_, i) => i !== index));
+            const deleteRow = (index) => {
+                const updated = rows.filter((_, i) => i !== index);
+                setRows(updated);
+                saveRowsForScheme(currentSchemeId, updated);
+            };
             
             const editRow = (index) => {
                 const row = rows[index];
