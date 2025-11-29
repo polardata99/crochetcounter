@@ -112,6 +112,7 @@
             const [schemeMode, setSchemeMode] = useState('main');
             const [availableSchemes, setAvailableSchemes] = useState([]);
             const [currentScheme, setCurrentScheme] = useState(null);
+            const [currentSchemeId, setCurrentSchemeId] = useState('manual'); // 'manual' или id схемы
             const [schemeProgress, setSchemeProgress] = useState({});
             const [currentPartIndex, setCurrentPartIndex] = useState(null);
             const [currentInstanceIndex, setCurrentInstanceIndex] = useState(0);
@@ -144,6 +145,21 @@
             useEffect(() => { rowsRef.current = rows; }, [rows]);
             useEffect(() => { modeRef.current = mode; }, [mode]);
             useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+            
+            // Auto-save rows when they change
+            useEffect(() => {
+                if (rows.length > 0 || currentSchemeId) {
+                    saveRowsForScheme(currentSchemeId, rows);
+                }
+            }, [rows, currentSchemeId]);
+            
+            // Load manual rows on initial mount
+            useEffect(() => {
+                const savedRows = loadRowsForScheme('manual');
+                if (savedRows.length > 0) {
+                    setRows(savedRows);
+                }
+            }, []);
 
             const quickButtons = [
                 { label: 'СБН', value: 'сбн', color: 'bg-blue-100 hover:bg-blue-200 text-blue-700' },
@@ -474,6 +490,18 @@
 
             const deleteRow = (index) => setRows(rows.filter((_, i) => i !== index));
             
+            const editRow = (index) => {
+                const row = rows[index];
+                
+                // Загружаем паттерн ряда в редактор
+                setCurrentRowPattern(row.pattern);
+                setCurrentRowNumber(row.rowNumber);
+                setManualInitialStitches(row.manualStitches || '');
+                
+                // Удаляем ряд из списка (будет пересоздан при сохранении)
+                setRows(rows.filter((_, i) => i !== index));
+            };
+            
             const openRepeatRowDialog = (index) => {
                 setRepeatRowIndex(index);
                 setRepeatRowCount(1);
@@ -675,6 +703,33 @@
                 return hist.length;
             };
             
+            // Helper functions for scheme-specific row storage
+            const saveRowsForScheme = (schemeId, rowsData) => {
+                const key = 'rows_' + schemeId;
+                localStorage.setItem(key, JSON.stringify(rowsData));
+            };
+            
+            const loadRowsForScheme = (schemeId) => {
+                const key = 'rows_' + schemeId;
+                const saved = localStorage.getItem(key);
+                return saved ? JSON.parse(saved) : [];
+            };
+            
+            const returnToMainScreen = () => {
+                // Сохраняем текущие ряды
+                saveRowsForScheme(currentSchemeId, rows);
+                
+                // Переключаемся на manual
+                setCurrentSchemeId('manual');
+                setCurrentScheme(null);
+                
+                // Загружаем ряды для manual
+                const manualRows = loadRowsForScheme('manual');
+                setRows(manualRows);
+                
+                setSchemeMode('main');
+            };
+            
             // Scheme functions
             const loadSchemesList = async () => {
                 try {
@@ -714,6 +769,9 @@
             
             const loadScheme = async (schemeId) => {
                 try {
+                    // Сохраняем текущие ряды перед переключением
+                    saveRowsForScheme(currentSchemeId, rows);
+                    
                     // First check if it's a local scheme
                     const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
                     const localScheme = localSchemes.find(s => s.id === schemeId);
@@ -733,6 +791,13 @@
                     } else {
                         setSchemeProgress({});
                     }
+                    
+                    // Устанавливаем ID схемы
+                    setCurrentSchemeId(schemeId);
+                    
+                    // Загружаем ряды для этой схемы
+                    const savedRows = loadRowsForScheme(schemeId);
+                    setRows(savedRows);
                     
                     setSchemeMode('scheme-details');
                 } catch (error) {
@@ -1213,7 +1278,7 @@
                             <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-xl font-bold text-gray-800">📚 Библиотека схем</h2>
-                                    <button onClick={() => setSchemeMode('main')} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
+                                    <button onClick={returnToMainScreen} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
                                 </div>
                                 
                                 <button onClick={importSchemeFromFile} className="w-full mb-4 bg-gradient-to-r from-blue-100 to-teal-100 hover:from-blue-200 hover:to-teal-200 text-teal-700 rounded-2xl py-3 font-semibold text-base">
@@ -1322,7 +1387,7 @@
                             <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-xl font-bold text-gray-800">📝 Новая схема</h2>
-                                    <button onClick={() => setSchemeMode('main')} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
+                                    <button onClick={returnToMainScreen} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
@@ -1599,6 +1664,14 @@
                                 
                                 <div className="bg-blue-50 rounded-2xl p-3 mb-3">
                                     <div className="text-sm text-gray-700">
+                                        {currentRowPattern.length > 0 && (
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span>🔢</span>
+                                                <span className="font-semibold">
+                                                    Паттерн требует: {currentRowPattern.reduce((sum, el) => el.isMarker ? sum : sum + (el.outputStitches - el.balance), 0) * repeatCount} петель
+                                                </span>
+                                            </div>
+                                        )}
                                         <div className="flex items-center gap-2 mb-1">
                                             <span>💡</span>
                                             <span className="font-semibold">
@@ -1642,6 +1715,7 @@
                                                 <div className="flex items-start justify-between mb-2">
                                                     <span className="font-bold text-purple-700 text-sm sm:text-base">Ряд {row.rowNumber}:</span>
                                                     <div className="flex gap-2">
+                                                        <button onClick={() => editRow(idx)} className="text-green-600 hover:text-green-800 transition-colors" title="Редактировать">✏️</button>
                                                         <button onClick={() => openRepeatRowDialog(idx)} className="text-blue-500 hover:text-blue-700 transition-colors" title="Повторить ряд">🔁</button>
                                                         <button onClick={() => deleteRow(idx)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 className="w-4 h-4 sm:w-5 sm:h-5" /></button>
                                                     </div>
