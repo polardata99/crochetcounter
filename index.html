@@ -743,9 +743,15 @@
 
             const getTotalStitches = (pattern) => pattern.reduce((sum, elem) => sum + elem.stitches, 0);
             
-            const getStitchBalance = (pattern) => pattern.reduce((sum, elem) => sum + elem.balance, 0);
+            const getStitchBalance = (pattern) => pattern.reduce((sum, elem) => {
+                const elRepeat = elem.repeatCount || 1;
+                return sum + (elem.balance * elRepeat);
+            }, 0);
             
-            const getFirstRowOutputStitches = (pattern) => pattern.reduce((sum, elem) => sum + elem.outputStitches, 0);
+            const getFirstRowOutputStitches = (pattern) => pattern.reduce((sum, elem) => {
+                const elRepeat = elem.repeatCount || 1;
+                return sum + (elem.outputStitches * elRepeat);
+            }, 0);
             
             const getPreviousRowStitches = (rowIndex) => {
                 if (rowIndex === 0) return 0;
