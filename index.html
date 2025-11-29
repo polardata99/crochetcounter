@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Счётчик вязания крючком</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        input, textarea, select {
+            font-size: 16px !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // SVG Icons
+        const Plus = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        );
+        const Minus = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        );
+        const Play = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+        );
+        const Pause = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+            </svg>
+        );
+        const RotateCcw = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+        );
+        const Edit3 = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+        );
+        const Trash2 = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+        );
+        const ChevronRight = ({ className = "w-5 h-5" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        );
+        const Mic = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+        );
+        const Volume2 = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+        );
+        const VolumeX = ({ className = "w-6 h-6" }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+        );
+
+        const CrochetCounter = () => {
+            const [mode, setMode] = useState('setup');
+            const [rows, setRows] = useState([]);
+            const [currentRow, setCurrentRow] = useState(0);
+            const [currentElement, setCurrentElement] = useState(0);
+            const [isPaused, setIsPaused] = useState(false);
+            const [history, setHistory] = useState([]);
+            const [currentRowPattern, setCurrentRowPattern] = useState([]);
+            const [customInput, setCustomInput] = useState('');
+            const [repeatCount, setRepeatCount] = useState(1);
+            const [customStitches, setCustomStitches] = useState(1);
+            const [customBalance, setCustomBalance] = useState(0);
+            const [currentRowNumber, setCurrentRowNumber] = useState(1);
+            const [manualInitialStitches, setManualInitialStitches] = useState('');
+            const [isListening, setIsListening] = useState(false);
+            const [recognition, setRecognition] = useState(null);
+            const [lastCommandTime, setLastCommandTime] = useState(0);
+            const [colorInput, setColorInput] = useState('');
+            const [repeatRowIndex, setRepeatRowIndex] = useState(null);
+            const [repeatRowCount, setRepeatRowCount] = useState(1);
+            const [voiceFeedback, setVoiceFeedback] = useState(false);
+            
+            // Scheme states
+            const [schemeMode, setSchemeMode] = useState('main');
+            const [availableSchemes, setAvailableSchemes] = useState([]);
+            const [currentScheme, setCurrentScheme] = useState(null);
+            const [schemeProgress, setSchemeProgress] = useState({});
+            const [currentPartIndex, setCurrentPartIndex] = useState(null);
+            const [currentInstanceIndex, setCurrentInstanceIndex] = useState(0);
+            
+            // Create scheme states
+            const [newSchemeName, setNewSchemeName] = useState('');
+            const [newSchemeEmoji, setNewSchemeEmoji] = useState('🧸');
+            const [newSchemeDifficulty, setNewSchemeDifficulty] = useState('Средний');
+            const [schemeParts, setSchemeParts] = useState([]);
+            const [currentPartName, setCurrentPartName] = useState('');
+            const [currentPartQuantity, setCurrentPartQuantity] = useState(1);
+            const [editingPartIndex, setEditingPartIndex] = useState(null);
+            
+            // Edit scheme state
+            const [editingScheme, setEditingScheme] = useState(null);
+            
+            // Refs to track current values for voice recognition
+            const isListeningRef = useRef(isListening);
+            const currentRowRef = useRef(currentRow);
+            const currentElementRef = useRef(currentElement);
+            const historyRef = useRef(history);
+            const rowsRef = useRef(rows);
+            const modeRef = useRef(mode);
+            const isPausedRef = useRef(isPaused);
+            
+            useEffect(() => { isListeningRef.current = isListening; }, [isListening]);
+            useEffect(() => { currentRowRef.current = currentRow; }, [currentRow]);
+            useEffect(() => { currentElementRef.current = currentElement; }, [currentElement]);
+            useEffect(() => { historyRef.current = history; }, [history]);
+            useEffect(() => { rowsRef.current = rows; }, [rows]);
+            useEffect(() => { modeRef.current = mode; }, [mode]);
+            useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
+            const quickButtons = [
+                { label: 'СБН', value: 'сбн', color: 'bg-blue-100 hover:bg-blue-200 text-blue-700' },
+                { label: 'ССН', value: 'ссн', color: 'bg-purple-100 hover:bg-purple-200 text-purple-700' },
+                { label: 'ВП', value: 'вп', color: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700' },
+            ];
+            
+            // Voice-triggered version that uses refs
+            const handleVoiceCommand = useCallback(() => {
+                const currentPattern = rowsRef.current[currentRowRef.current]?.pattern;
+                if (!currentPattern) return;
+                
+                const currentElementData = currentPattern[currentElementRef.current];
+                if (!currentElementData) return;
+                
+                setHistory([...historyRef.current, currentElementData]);
+                
+                if (currentElementRef.current < currentPattern.length - 1) {
+                    setCurrentElement(currentElementRef.current + 1);
+                    
+                    // Озвучка следующего элемента
+                    if (voiceFeedback) {
+                        const nextElement = currentPattern[currentElementRef.current + 1];
+                        
+                        if (nextElement.type === 'COLOR_CHANGE') {
+                            speak('Смени цвет на ' + nextElement.color);
+                        } else if (nextElement.stitches > 1) {
+                            speak(nextElement.type + ', ' + nextElement.stitches + ' провязов');
+                        } else {
+                            speak(nextElement.type);
+                        }
+                    }
+                } else {
+                    if (currentRowRef.current < rowsRef.current.length - 1) {
+                        setCurrentRow(currentRowRef.current + 1);
+                        setCurrentElement(0);
+                        setHistory([]);
+                        
+                        // Озвучка нового ряда
+                        if (voiceFeedback) {
+                            const nextRow = rowsRef.current[currentRowRef.current + 1].pattern;
+                            const firstElement = nextRow[0];
+                            const nextRowNumber = rowsRef.current[currentRowRef.current + 1].rowNumber;
+                            
+                            if (firstElement.type === 'COLOR_CHANGE') {
+                                speak('Ряд ' + nextRowNumber + '. Смени цвет на ' + firstElement.color);
+                            } else if (firstElement.stitches > 1) {
+                                speak('Ряд ' + nextRowNumber + '. ' + firstElement.type + ', ' + firstElement.stitches + ' провязов');
+                            } else {
+                                speak('Ряд ' + nextRowNumber + '. ' + firstElement.type);
+                            }
+                        }
+                    } else {
+                        alert('🎉 Поздравляю! Ты завершила все ряды!');
+                        setMode('setup');
+                    }
+                }
+            }, [voiceFeedback]);
+            
+            // Voice-triggered undo
+            const handleVoiceUndo = useCallback(() => {
+                if (currentElementRef.current > 0) {
+                    const prevElement = rowsRef.current[currentRowRef.current].pattern[currentElementRef.current - 1];
+                    setCurrentElement(currentElementRef.current - 1);
+                    setHistory(historyRef.current.slice(0, -1));
+                    
+                    if (voiceFeedback) {
+                        if (prevElement.type === 'COLOR_CHANGE') {
+                            speak('Назад. Смени цвет на ' + prevElement.color);
+                        } else if (prevElement.stitches > 1) {
+                            speak('Назад. ' + prevElement.type + ', ' + prevElement.stitches + ' провязов');
+                        } else {
+                            speak('Назад. ' + prevElement.type);
+                        }
+                    }
+                } else if (currentRowRef.current > 0) {
+                    const prevRow = rowsRef.current[currentRowRef.current - 1].pattern;
+                    const lastElement = prevRow[prevRow.length - 1];
+                    setCurrentRow(currentRowRef.current - 1);
+                    setCurrentElement(prevRow.length - 1);
+                    setHistory(prevRow.slice(0, -1));
+                    
+                    if (voiceFeedback) {
+                        const prevRowNumber = rowsRef.current[currentRowRef.current - 1].rowNumber;
+                        
+                        if (lastElement.type === 'COLOR_CHANGE') {
+                            speak('Назад в ряд ' + prevRowNumber + '. Смени цвет на ' + lastElement.color);
+                        } else if (lastElement.stitches > 1) {
+                            speak('Назад в ряд ' + prevRowNumber + '. ' + lastElement.type + ', ' + lastElement.stitches + ' провязов');
+                        } else {
+                            speak('Назад в ряд ' + prevRowNumber + '. ' + lastElement.type);
+                        }
+                    }
+                }
+            }, [voiceFeedback]);
+            
+            // Text-to-speech helper
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    
+                    // Маппинг сокращений на полные названия
+                    const voiceNames = {
+                        'сбн': 'столбик без накида',
+                        'ссн': 'столбик с накидом',
+                        'сс2н': 'столбик с двумя накидами',
+                        'сс3н': 'столбик с тремя накидами',
+                        'пссн': 'полустолбик с накидом',
+                        'сс': 'соединительный столбик',
+                        'вп': 'воздушная петля',
+                        'вп подъема': 'воздушная петля подъёма',
+                        'пп': 'петля подъёма',
+                        'пр': 'прибавка',
+                        'уб': 'убавка'
+                    };
+                    
+                    let spokenText = text;
+                    
+                    // Проверяем точные совпадения (весь текст целиком)
+                    const lowerText = text.trim().toLowerCase();
+                    if (voiceNames[lowerText]) {
+                        spokenText = voiceNames[lowerText];
+                    } else {
+                        // Заменяем каждое сокращение (от длинных к коротким чтобы избежать конфликтов)
+                        const sortedKeys = Object.keys(voiceNames).sort((a, b) => b.length - a.length);
+                        sortedKeys.forEach(short => {
+                            // Заменяем с учётом границ слов - добавляем пробелы/знаки препинания
+                            const regex = new RegExp('(^|[\\s\\.\\,\\!\\?])(' + short + ')($|[\\s\\.\\,\\!\\?])', 'gi');
+                            spokenText = spokenText.replace(regex, '$1' + voiceNames[short] + '$3');
+                        });
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(spokenText);
+                    utterance.lang = 'ru-RU';
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            // Initialize voice recognition
+            useEffect(() => {
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    const recognitionInstance = new SpeechRecognition();
+                    recognitionInstance.continuous = true;
+                    recognitionInstance.interimResults = true;
+                    recognitionInstance.lang = 'ru-RU';
+                    
+                    recognitionInstance.onresult = (event) => {
+                        const last = event.results.length - 1;
+                        const text = event.results[last][0].transcript.toLowerCase().trim();
+                        
+                        if (event.results[last].isFinal) {
+                            const now = Date.now();
+                            
+                            if (text.includes('готово') || text.includes('готов')) {
+                                setLastCommandTime(prevTime => {
+                                    // Защита от двойного срабатывания - минимум 800мс между командами
+                                    if (now - prevTime > 800) {
+                                        handleVoiceCommand();
+                                        return now;
+                                    }
+                                    return prevTime;
+                                });
+                            } else if (text.includes('назад') || text.includes('отмена')) {
+                                setLastCommandTime(prevTime => {
+                                    if (now - prevTime > 800) {
+                                        handleVoiceUndo();
+                                        return now;
+                                    }
+                                    return prevTime;
+                                });
+                            }
+                        }
+                    };
+                    
+                    recognitionInstance.onstart = () => {
+                        console.log('Voice recognition started');
+                    };
+                    
+                    recognitionInstance.onerror = (event) => {
+                        console.error('Voice recognition error:', event.error);
+                        if (event.error === 'not-allowed') {
+                            alert('Пожалуйста, разрешите доступ к микрофону в настройках браузера');
+                        }
+                        setIsListening(false);
+                    };
+                    
+                    recognitionInstance.onend = () => {
+                        console.log('Voice recognition ended, restarting...');
+                        setTimeout(() => {
+                            if (isListeningRef.current && modeRef.current === 'knitting' && !isPausedRef.current) {
+                                try {
+                                    recognitionInstance.start();
+                                    console.log('Restarted successfully');
+                                } catch (e) {
+                                    console.error('Failed to restart:', e);
+                                }
+                            }
+                        }, 300);
+                    };
+                    
+                    setRecognition(recognitionInstance);
+                }
+            }, [handleVoiceCommand, handleVoiceUndo]);
+
+            // Handle voice recognition start/stop
+            useEffect(() => {
+                if (recognition) {
+                    if (isListening && mode === 'knitting' && !isPaused) {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.log('Recognition already started');
+                        }
+                    } else {
+                        try {
+                            recognition.stop();
+                        } catch (e) {
+                            console.log('Recognition already stopped');
+                        }
+                    }
+                }
+            }, [isListening, mode, isPaused, recognition]);
+
+            const toggleVoiceControl = () => {
+                setIsListening(!isListening);
+            };
+
+            const addToPattern = (element) => {
+                setCurrentRowPattern([...currentRowPattern, { type: element, stitches: 1, balance: 0, outputStitches: 1 }]);
+            };
+
+            const addIncrease = () => {
+                setCurrentRowPattern([...currentRowPattern, { type: 'пр', stitches: 1, balance: 1, outputStitches: 2 }]);
+            };
+
+            const addDecrease = () => {
+                setCurrentRowPattern([...currentRowPattern, { type: 'уб', stitches: 1, balance: -1, outputStitches: 1 }]);
+            };
+
+            const addCustomElement = () => {
+                if (customInput.trim()) {
+                    setCurrentRowPattern([...currentRowPattern, { 
+                        type: customInput.trim(), 
+                        stitches: customStitches,
+                        balance: customBalance,
+                        outputStitches: 1 + customBalance
+                    }]);
+                    setCustomInput('');
+                    setCustomStitches(1);
+                    setCustomBalance(0);
+                }
+            };
+            
+            const addColorChange = () => {
+                if (colorInput.trim()) {
+                    setCurrentRowPattern([...currentRowPattern, {
+                        type: 'COLOR_CHANGE',
+                        color: colorInput.trim(),
+                        isMarker: true,
+                        stitches: 0,
+                        balance: 0,
+                        outputStitches: 0
+                    }]);
+                    setColorInput('');
+                }
+            };
+
+            const removeLastFromPattern = () => setCurrentRowPattern(currentRowPattern.slice(0, -1));
+
+            const addRow = () => {
+                if (currentRowPattern.length > 0) {
+                    const repeatedPattern = Array(repeatCount).fill(currentRowPattern).flat();
+                    
+                    // Проверка соответствия паттерна предыдущему ряду
+                    const previousOutput = manualInitialStitches.trim() !== '' 
+                        ? parseInt(manualInitialStitches)
+                        : (rows.length > 0 ? getCurrentRowStitches(rows.length - 1) : 0);
+                    
+                    if (previousOutput > 0) {
+                        const requiredInput = repeatedPattern.reduce((sum, element) => {
+                            if (element.isMarker) return sum; // Пропускаем маркеры
+                            const inputStitches = element.outputStitches - element.balance;
+                            return sum + inputStitches;
+                        }, 0);
+                        
+                        if (requiredInput !== previousOutput) {
+                            alert(
+                                '❌ Ошибка в паттерне!\n\n' +
+                                'Паттерн требует: ' + requiredInput + ' петель\n' +
+                                'В предыдущем ряду: ' + previousOutput + ' петель\n\n' +
+                                'Исправьте паттерн или количество петель!'
+                            );
+                            return;
+                        }
+                    }
+                    
+                    // Валидация
+                    if (rows.length > 0 && manualInitialStitches.trim() !== '') {
+                        const manualValue = parseInt(manualInitialStitches);
+                        const autoCalculated = getCurrentRowStitches(rows.length - 1);
+                        
+                        if (manualValue !== autoCalculated) {
+                            const confirmed = confirm(
+                                '⚠️ Внимание!\n\n' +
+                                'В Ряду ' + rows.length + ' получилось ' + autoCalculated + ' петель,\n' +
+                                'но ты указала ' + manualValue + ' петель.\n\n' +
+                                'Продолжить?'
+                            );
+                            if (!confirmed) return;
+                        }
+                    }
+                    
+                    const newRow = {
+                        pattern: repeatedPattern,
+                        rowNumber: currentRowNumber,
+                        manualStitches: manualInitialStitches.trim() !== '' ? parseInt(manualInitialStitches) : undefined
+                    };
+                    
+                    setRows([...rows, newRow]);
+                    setCurrentRowPattern([]);
+                    setRepeatCount(1);
+                    setCurrentRowNumber(currentRowNumber + 1);
+                    setManualInitialStitches('');
+                }
+            };
+
+            const deleteRow = (index) => setRows(rows.filter((_, i) => i !== index));
+            
+            const openRepeatRowDialog = (index) => {
+                setRepeatRowIndex(index);
+                setRepeatRowCount(1);
+            };
+            
+            const closeRepeatRowDialog = () => {
+                setRepeatRowIndex(null);
+                setRepeatRowCount(1);
+            };
+            
+            const confirmRepeatRow = () => {
+                if (repeatRowIndex !== null && repeatRowCount > 0 && repeatRowCount <= 20) {
+                    const rowToRepeat = rows[repeatRowIndex];
+                    const newRows = [];
+                    
+                    for (let i = 0; i < repeatRowCount; i++) {
+                        newRows.push({
+                            pattern: rowToRepeat.pattern,
+                            rowNumber: rows.length + i + 1,
+                            manualStitches: rowToRepeat.manualStitches
+                        });
+                    }
+                    
+                    setRows([...rows, ...newRows]);
+                    setCurrentRowNumber(rows.length + repeatRowCount + 1);
+                    closeRepeatRowDialog();
+                }
+            };
+
+            const startKnitting = () => {
+                if (rows.length > 0) {
+                    setMode('knitting');
+                    setCurrentRow(0);
+                    setCurrentElement(0);
+                    setHistory([]);
+                }
+            };
+
+            const markStitchDone = () => {
+                const currentPattern = rows[currentRow].pattern;
+                const currentElementData = currentPattern[currentElement];
+                
+                setHistory([...history, currentElementData]);
+                
+                if (currentElement < currentPattern.length - 1) {
+                    setCurrentElement(currentElement + 1);
+                    
+                    // Озвучка следующего элемента
+                    if (voiceFeedback) {
+                        const nextElement = currentPattern[currentElement + 1];
+                        
+                        // Если это смена цвета - озвучить
+                        if (nextElement.type === 'COLOR_CHANGE') {
+                            speak('Смени цвет на ' + nextElement.color);
+                        } else if (nextElement.stitches > 1) {
+                            speak(nextElement.type + ', ' + nextElement.stitches + ' провязов');
+                        } else {
+                            speak(nextElement.type);
+                        }
+                    }
+                } else {
+                    if (currentRow < rows.length - 1) {
+                        setCurrentRow(currentRow + 1);
+                        setCurrentElement(0);
+                        setHistory([]);
+                        
+                        // Озвучка нового ряда
+                        if (voiceFeedback) {
+                            const nextRow = rows[currentRow + 1].pattern;
+                            const firstElement = nextRow[0];
+                            
+                            if (firstElement.type === 'COLOR_CHANGE') {
+                                speak('Ряд ' + rows[currentRow + 1].rowNumber + '. Смени цвет на ' + firstElement.color);
+                            } else if (firstElement.stitches > 1) {
+                                speak('Ряд ' + rows[currentRow + 1].rowNumber + '. ' + firstElement.type + ', ' + firstElement.stitches + ' провязов');
+                            } else {
+                                speak('Ряд ' + rows[currentRow + 1].rowNumber + '. ' + firstElement.type);
+                            }
+                        }
+                    } else {
+                        if (currentPartIndex !== null) {
+                            completePartInstance();
+                        } else {
+                            alert('🎉 Поздравляю! Ты завершила все ряды!');
+                            setMode('setup');
+                        }
+                    }
+                }
+            };
+
+            const undoLast = () => {
+                if (currentElement > 0) {
+                    setCurrentElement(currentElement - 1);
+                    setHistory(history.slice(0, -1));
+                    
+                    // Voice feedback for undo
+                    if (voiceFeedback) {
+                        const currentPattern = rows[currentRow].pattern;
+                        const newCurrentElement = currentPattern[currentElement - 1];
+                        
+                        if (newCurrentElement.type === 'COLOR_CHANGE') {
+                            speak('Назад. Смени цвет на ' + newCurrentElement.color);
+                        } else if (newCurrentElement.stitches > 1) {
+                            speak('Назад. ' + newCurrentElement.type + ', ' + newCurrentElement.stitches + ' провязов');
+                        } else {
+                            speak('Назад. ' + newCurrentElement.type);
+                        }
+                    }
+                } else if (currentRow > 0) {
+                    const prevRow = rows[currentRow - 1].pattern;
+                    setCurrentRow(currentRow - 1);
+                    setCurrentElement(prevRow.length - 1);
+                    setHistory(prevRow.slice(0, -1));
+                    
+                    // Voice feedback when going back to previous row
+                    if (voiceFeedback) {
+                        const newCurrentElement = prevRow[prevRow.length - 1];
+                        
+                        if (newCurrentElement.type === 'COLOR_CHANGE') {
+                            speak('Назад в ряд ' + rows[currentRow - 1].rowNumber + '. Смени цвет на ' + newCurrentElement.color);
+                        } else if (newCurrentElement.stitches > 1) {
+                            speak('Назад. Ряд ' + rows[currentRow - 1].rowNumber + '. ' + newCurrentElement.type + ', ' + newCurrentElement.stitches + ' провязов');
+                        } else {
+                            speak('Назад. Ряд ' + rows[currentRow - 1].rowNumber + '. ' + newCurrentElement.type);
+                        }
+                    }
+                }
+            };
+
+            const editCounter = () => {
+                const newRow = prompt('Введите номер ряда (1-' + rows.length + '):', currentRow + 1);
+                const newElement = prompt('Введите номер элемента:', currentElement + 1);
+                
+                if (newRow && newElement) {
+                    const rowNum = parseInt(newRow) - 1;
+                    const elemNum = parseInt(newElement) - 1;
+                    
+                    if (rowNum >= 0 && rowNum < rows.length && elemNum >= 0 && elemNum < rows[rowNum].pattern.length) {
+                        setCurrentRow(rowNum);
+                        setCurrentElement(elemNum);
+                        setHistory(rows[rowNum].pattern.slice(0, elemNum));
+                    }
+                }
+            };
+
+            const getTotalStitches = (pattern) => pattern.reduce((sum, elem) => sum + elem.stitches, 0);
+            
+            const getStitchBalance = (pattern) => pattern.reduce((sum, elem) => sum + elem.balance, 0);
+            
+            const getFirstRowOutputStitches = (pattern) => pattern.reduce((sum, elem) => sum + elem.outputStitches, 0);
+            
+            const getPreviousRowStitches = (rowIndex) => {
+                if (rowIndex === 0) return 0;
+                
+                // Проверяем есть ли ручной ввод для первого ряда
+                if (rows[0] && rows[0].manualStitches !== undefined) {
+                    let total = rows[0].manualStitches + getStitchBalance(rows[0].pattern);
+                    for (let i = 1; i < rowIndex; i++) {
+                        if (rows[i].manualStitches !== undefined) {
+                            total = rows[i].manualStitches + getStitchBalance(rows[i].pattern);
+                        } else {
+                            total += getStitchBalance(rows[i].pattern);
+                        }
+                    }
+                    return total;
+                }
+                
+                // Автоподсчёт
+                let total = getFirstRowOutputStitches(rows[0].pattern);
+                for (let i = 1; i < rowIndex; i++) {
+                    if (rows[i].manualStitches !== undefined) {
+                        total = rows[i].manualStitches + getStitchBalance(rows[i].pattern);
+                    } else {
+                        total += getStitchBalance(rows[i].pattern);
+                    }
+                }
+                return total;
+            };
+            
+            const getCurrentRowStitches = (rowIndex) => {
+                if (rowIndex === 0) {
+                    // Для первого ряда - если есть ручной ввод, используем его + баланс
+                    if (rows[0] && rows[0].manualStitches !== undefined) {
+                        return rows[0].manualStitches + getStitchBalance(rows[0].pattern);
+                    }
+                    return getFirstRowOutputStitches(rows[rowIndex].pattern);
+                }
+                return getPreviousRowStitches(rowIndex) + getStitchBalance(rows[rowIndex].pattern);
+            };
+
+            const getCompletedStitches = (hist) => {
+                let completed = 0;
+                hist.forEach(elem => { completed += elem.stitches; });
+                return completed;
+            };
+            
+            const getCompletedPetels = (rowIndex, hist) => {
+                // Просто количество завершённых элементов в текущем ряду
+                return hist.length;
+            };
+            
+            // Scheme functions
+            const loadSchemesList = async () => {
+                try {
+                    // Load from server
+                    const response = await fetch('./schemes/schemes-list.json');
+                    const data = await response.json();
+                    const serverSchemes = data.schemes || [];
+                    
+                    // Load from localStorage
+                    const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                    
+                    // Mark local schemes
+                    localSchemes.forEach(scheme => {
+                        scheme.isLocal = true;
+                        if (!scheme.totalParts) {
+                            scheme.totalParts = scheme.parts.length;
+                        }
+                        if (!scheme.totalRows) {
+                            scheme.totalRows = scheme.parts.reduce((sum, p) => sum + p.rows.length, 0);
+                        }
+                    });
+                    
+                    // Combine both
+                    setAvailableSchemes([...serverSchemes, ...localSchemes]);
+                } catch (error) {
+                    console.error('Error loading schemes:', error);
+                    // If server schemes fail, still load local
+                    const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                    localSchemes.forEach(scheme => {
+                        scheme.isLocal = true;
+                        if (!scheme.totalParts) scheme.totalParts = scheme.parts.length;
+                        if (!scheme.totalRows) scheme.totalRows = scheme.parts.reduce((sum, p) => sum + p.rows.length, 0);
+                    });
+                    setAvailableSchemes(localSchemes);
+                }
+            };
+            
+            const loadScheme = async (schemeId) => {
+                try {
+                    // First check if it's a local scheme
+                    const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                    const localScheme = localSchemes.find(s => s.id === schemeId);
+                    
+                    if (localScheme) {
+                        setCurrentScheme(localScheme);
+                    } else {
+                        // Load from server
+                        const response = await fetch('./schemes/' + schemeId + '.json');
+                        const data = await response.json();
+                        setCurrentScheme(data);
+                    }
+                    
+                    const savedProgress = localStorage.getItem('scheme_progress_' + schemeId);
+                    if (savedProgress) {
+                        setSchemeProgress(JSON.parse(savedProgress));
+                    } else {
+                        setSchemeProgress({});
+                    }
+                    
+                    setSchemeMode('scheme-details');
+                } catch (error) {
+                    console.error('Error loading scheme:', error);
+                    alert('Ошибка загрузки схемы');
+                }
+            };
+            
+            const startKnittingPart = (partIndex, instanceIndex) => {
+                const part = currentScheme.parts[partIndex];
+                setRows(part.rows);
+                setCurrentRow(0);
+                setCurrentElement(0);
+                setHistory([]);
+                setCurrentPartIndex(partIndex);
+                setCurrentInstanceIndex(instanceIndex);
+                setMode('knitting');
+            };
+            
+            const completePartInstance = () => {
+                const key = currentPartIndex + '_' + currentInstanceIndex;
+                const newProgress = { ...schemeProgress };
+                newProgress[key] = true;
+                setSchemeProgress(newProgress);
+                
+                localStorage.setItem('scheme_progress_' + currentScheme.id, JSON.stringify(newProgress));
+                
+                setMode('setup');
+                setSchemeMode('scheme-details');
+                setCurrentPartIndex(null);
+                setCurrentInstanceIndex(0);
+                alert('🎉 Деталь завершена!');
+            };
+            
+            const exportSchemeToJSON = () => {
+                const scheme = {
+                    id: newSchemeName.toLowerCase().replace(/\s+/g, '-'),
+                    name: newSchemeName,
+                    emoji: newSchemeEmoji,
+                    difficulty: newSchemeDifficulty,
+                    parts: schemeParts
+                };
+                
+                // Calculate totals
+                scheme.totalParts = schemeParts.reduce((sum, p) => sum + p.quantity, 0);
+                scheme.totalRows = schemeParts.reduce((sum, p) => sum + p.rows.length * p.quantity, 0);
+                
+                const dataStr = JSON.stringify(scheme, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                const fileName = scheme.id + '.json';
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', fileName);
+                linkElement.click();
+                
+                alert('✅ Файл схемы сохранён в Загрузки!');
+            };
+            
+            const saveSchemeLocally = () => {
+                if (!newSchemeName.trim()) {
+                    alert('Введите название схемы');
+                    return;
+                }
+                
+                if (schemeParts.length === 0) {
+                    alert('Добавьте хотя бы одну деталь');
+                    return;
+                }
+                
+                const scheme = {
+                    id: newSchemeName.toLowerCase().replace(/\s+/g, '-'),
+                    name: newSchemeName,
+                    emoji: newSchemeEmoji,
+                    difficulty: newSchemeDifficulty,
+                    parts: schemeParts,
+                    isLocal: true
+                };
+                
+                // Calculate totals
+                scheme.totalParts = schemeParts.reduce((sum, p) => sum + p.quantity, 0);
+                scheme.totalRows = schemeParts.reduce((sum, p) => sum + p.rows.length * p.quantity, 0);
+                
+                // Save to localStorage
+                const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                const existingIndex = localSchemes.findIndex(s => s.id === scheme.id);
+                
+                if (existingIndex >= 0) {
+                    localSchemes[existingIndex] = scheme;
+                } else {
+                    localSchemes.push(scheme);
+                }
+                
+                localStorage.setItem('local_schemes', JSON.stringify(localSchemes));
+                
+                // Reset form and go to library
+                setNewSchemeName('');
+                setNewSchemeEmoji('🧸');
+                setNewSchemeDifficulty('Средний');
+                setSchemeParts([]);
+                loadSchemesList();
+                setSchemeMode('library');
+                
+                alert('✅ Схема сохранена в браузере!');
+            };
+            
+            const importSchemeFromFile = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const scheme = JSON.parse(event.target.result);
+                            
+                            // Validate scheme structure
+                            if (!scheme.name || !scheme.parts || !Array.isArray(scheme.parts)) {
+                                alert('❌ Неверный формат файла схемы');
+                                return;
+                            }
+                            
+                            // Mark as local
+                            scheme.isLocal = true;
+                            
+                            // Calculate totals if missing
+                            if (!scheme.totalParts) {
+                                scheme.totalParts = scheme.parts.reduce((sum, p) => sum + p.quantity, 0);
+                            }
+                            if (!scheme.totalRows) {
+                                scheme.totalRows = scheme.parts.reduce((sum, p) => sum + p.rows.length * p.quantity, 0);
+                            }
+                            
+                            // Save to localStorage
+                            const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                            
+                            // Check if already exists
+                            const existingIndex = localSchemes.findIndex(s => s.id === scheme.id);
+                            if (existingIndex >= 0) {
+                                if (!confirm('Схема "' + scheme.name + '" уже существует. Заменить?')) {
+                                    return;
+                                }
+                                localSchemes[existingIndex] = scheme;
+                            } else {
+                                localSchemes.push(scheme);
+                            }
+                            
+                            localStorage.setItem('local_schemes', JSON.stringify(localSchemes));
+                            
+                            // Reload available schemes
+                            loadSchemesList();
+                            
+                            alert('✅ Схема "' + scheme.name + '" успешно импортирована!');
+                        } catch (error) {
+                            console.error('Import error:', error);
+                            alert('❌ Ошибка чтения файла. Проверьте формат JSON.');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            };
+            
+            const deleteLocalScheme = (schemeId) => {
+                if (!confirm('Удалить эту схему из локального хранилища?')) return;
+                
+                const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                const filtered = localSchemes.filter(s => s.id !== schemeId);
+                localStorage.setItem('local_schemes', JSON.stringify(filtered));
+                
+                // Also delete progress
+                localStorage.removeItem('scheme_progress_' + schemeId);
+                
+                loadSchemesList();
+                setSchemeMode('library');
+                alert('✅ Схема удалена');
+            };
+            
+            const resetAllProgress = () => {
+                if (!confirm('Сбросить весь прогресс этой схемы?')) return;
+                
+                setSchemeProgress({});
+                localStorage.setItem('scheme_progress_' + currentScheme.id, JSON.stringify({}));
+                alert('✅ Прогресс сброшен');
+            };
+            
+            const resetPartProgress = (partIndex, instanceIndex) => {
+                if (!confirm('Сбросить прогресс этой детали?')) return;
+                
+                const key = partIndex + '_' + instanceIndex;
+                const newProgress = { ...schemeProgress };
+                delete newProgress[key];
+                setSchemeProgress(newProgress);
+                localStorage.setItem('scheme_progress_' + currentScheme.id, JSON.stringify(newProgress));
+                alert('✅ Прогресс детали сброшен');
+            };
+            
+            const startEditingScheme = () => {
+                setEditingScheme(currentScheme);
+                setNewSchemeName(currentScheme.name);
+                setNewSchemeEmoji(currentScheme.emoji);
+                setNewSchemeDifficulty(currentScheme.difficulty);
+                setSchemeParts(currentScheme.parts);
+                setSchemeMode('edit-scheme');
+            };
+            
+            const saveEditedScheme = () => {
+                if (!newSchemeName.trim()) {
+                    alert('Введите название схемы');
+                    return;
+                }
+                
+                const updatedScheme = {
+                    id: editingScheme.id,
+                    name: newSchemeName,
+                    emoji: newSchemeEmoji,
+                    difficulty: newSchemeDifficulty,
+                    parts: schemeParts,
+                    isLocal: true
+                };
+                
+                // Calculate totals
+                updatedScheme.totalParts = schemeParts.reduce((sum, p) => sum + p.quantity, 0);
+                updatedScheme.totalRows = schemeParts.reduce((sum, p) => sum + p.rows.length * p.quantity, 0);
+                
+                // Update in localStorage
+                const localSchemes = JSON.parse(localStorage.getItem('local_schemes') || '[]');
+                const index = localSchemes.findIndex(s => s.id === editingScheme.id);
+                if (index >= 0) {
+                    localSchemes[index] = updatedScheme;
+                } else {
+                    localSchemes.push(updatedScheme);
+                }
+                localStorage.setItem('local_schemes', JSON.stringify(localSchemes));
+                
+                // Update current scheme
+                setCurrentScheme(updatedScheme);
+                setEditingScheme(null);
+                setSchemeMode('scheme-details');
+                loadSchemesList();
+                alert('✅ Схема обновлена!');
+            };
+            
+            const exportEditedScheme = () => {
+                const scheme = {
+                    id: editingScheme.id,
+                    name: newSchemeName,
+                    emoji: newSchemeEmoji,
+                    difficulty: newSchemeDifficulty,
+                    parts: schemeParts
+                };
+                
+                scheme.totalParts = schemeParts.reduce((sum, p) => sum + p.quantity, 0);
+                scheme.totalRows = schemeParts.reduce((sum, p) => sum + p.rows.length * p.quantity, 0);
+                
+                const dataStr = JSON.stringify(scheme, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                const fileName = scheme.id + '.json';
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', fileName);
+                linkElement.click();
+                
+                alert('✅ Обновлённая схема экспортирована!');
+            };
+            
+            const cancelEditingScheme = () => {
+                if (confirm('Отменить редактирование? Несохранённые изменения будут потеряны.')) {
+                    setEditingScheme(null);
+                    setNewSchemeName('');
+                    setNewSchemeEmoji('🧸');
+                    setNewSchemeDifficulty('Средний');
+                    setSchemeParts([]);
+                    setSchemeMode('scheme-details');
+                }
+            };
+            
+            const savePartPattern = () => {
+                if (rows.length === 0) {
+                    alert('Добавьте хотя бы один ряд');
+                    return;
+                }
+                
+                const newPart = {
+                    partName: currentPartName,
+                    quantity: currentPartQuantity,
+                    rows: rows
+                };
+                
+                if (editingPartIndex !== null) {
+                    const updatedParts = [...schemeParts];
+                    updatedParts[editingPartIndex] = newPart;
+                    setSchemeParts(updatedParts);
+                    setEditingPartIndex(null);
+                } else {
+                    setSchemeParts([...schemeParts, newPart]);
+                }
+                
+                setRows([]);
+                setCurrentRowPattern([]);
+                setCurrentPartName('');
+                setCurrentPartQuantity(1);
+                setCurrentRowNumber(1);
+                setManualInitialStitches('');
+                setRepeatCount(1);
+                
+                // Return to appropriate mode
+                if (schemeMode === 'create-part-pattern') {
+                    setSchemeMode('add-parts');
+                } else if (editingScheme) {
+                    setSchemeMode('edit-scheme');
+                }
+            };
+            
+            const startCreatingPartPattern = () => {
+                if (!currentPartName.trim()) {
+                    alert('Введите название детали');
+                    return;
+                }
+                setSchemeMode('create-part-pattern');
+            };
+            
+            const deletePart = (index) => {
+                if (confirm('Удалить эту деталь?')) {
+                    setSchemeParts(schemeParts.filter((_, i) => i !== index));
+                }
+            };
+            
+            const editPart = (index) => {
+                const part = schemeParts[index];
+                setCurrentPartName(part.partName);
+                setCurrentPartQuantity(part.quantity);
+                setRows(part.rows);
+                setEditingPartIndex(index);
+                setSchemeMode('create-part-pattern');
+            };
+            
+            useEffect(() => {
+                if (schemeMode === 'library' && availableSchemes.length === 0) {
+                    loadSchemesList();
+                }
+            }, [schemeMode]);
+
+            if (mode === 'knitting') {
+                const currentRowData = rows[currentRow];
+                const currentPattern = currentRowData.pattern;
+                const currentElementData = currentPattern[currentElement];
+                const totalStitches = getTotalStitches(currentPattern);
+                const completedStitches = getCompletedStitches(history);
+                const progress = Math.round((completedStitches / totalStitches) * 100);
+                const nextElements = currentPattern.slice(currentElement + 1, currentElement + 4);
+                
+                const totalElementsInRow = currentPattern.length;
+                const completedElements = history.length;
+                const totalPetelsInRow = getCurrentRowStitches(currentRow);
+                const remainingFromPreviousRow = totalElementsInRow - completedElements;
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-purple-50 p-3 sm:p-4">
+                        <div className="max-w-2xl mx-auto pb-20">
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                                    <div className="flex-1">
+                                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Ряд {currentRowData.rowNumber} из {rows[rows.length - 1].rowNumber}</h2>
+                                        <p className="text-sm sm:text-base text-gray-500 mt-1">Петель провязано: {completedElements} из {totalPetelsInRow}</p>
+                                        {(currentRow > 0 || currentRowData.manualStitches) && (
+                                            <p className="text-xs sm:text-sm text-gray-400">Из ряда {currentRow > 0 ? rows[currentRow - 1].rowNumber : currentRowData.rowNumber - 1} осталось: {remainingFromPreviousRow} петель</p>
+                                        )}
+                                    </div>
+                                    <div className="text-4xl sm:text-5xl">🐝</div>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-green-400 to-teal-500 h-full rounded-full transition-all duration-300" style={{ width: `${progress}%` }}/>
+                                </div>
+                                <p className="text-center text-gray-600 font-semibold mt-1.5 sm:mt-2 text-sm sm:text-base">{progress}%</p>
+                            </div>
+
+                            {history.length > 0 && (
+                                <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3">Уже сделано:</h3>
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                        {history.map((elem, idx) => (
+                                            <span key={idx} className="bg-green-100 text-green-700 px-2 sm:px-3 py-1 rounded-full font-medium text-xs sm:text-sm flex items-center gap-1">
+                                                {elem.type}{elem.stitches > 1 && <span className="text-xs">×{elem.stitches}</span>}✓
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className={(currentElementData.type === 'COLOR_CHANGE' ? 'bg-gradient-to-br from-pink-500 to-orange-500' : 'bg-gradient-to-br from-purple-500 to-pink-500') + ' rounded-3xl shadow-2xl p-6 sm:p-8 mb-4 sm:mb-6 text-center'}>
+                                <p className="text-white text-base sm:text-lg font-semibold mb-2 opacity-90">СЕЙЧАС ДЕЛАЙ:</p>
+                                <p className="text-white text-4xl sm:text-5xl font-bold mb-2 sm:mb-4">
+                                    {currentElementData.type === 'COLOR_CHANGE' 
+                                        ? `🎨 СМЕНИ ЦВЕТ НА ${currentElementData.color.toUpperCase()}`
+                                        : (currentElementData.stitches > 1 
+                                            ? currentElementData.type.toUpperCase() + ' — ' + currentElementData.stitches + ' провязов'
+                                            : currentElementData.type.toUpperCase())
+                                    }
+                                </p>
+                                
+                                <button
+                                    onClick={markStitchDone}
+                                    disabled={isPaused}
+                                    className="w-full bg-white hover:bg-gray-100 text-purple-600 rounded-2xl py-5 sm:py-6 font-bold text-xl sm:text-2xl transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                                >
+                                    ГОТОВО
+                                </button>
+                            </div>
+
+                            {nextElements.length > 0 && (
+                                <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center gap-2">
+                                        Что дальше: <ChevronRight />
+                                    </h3>
+                                    <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+                                        {nextElements.map((elem, idx) => (
+                                            <span key={idx} className="bg-blue-100 text-blue-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-sm sm:text-base flex items-center gap-1">
+                                                {elem.type}{elem.stitches > 1 && <span className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">×{elem.stitches}</span>}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6">
+                                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                                    <button onClick={undoLast} className="bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-2xl py-3 sm:py-4 font-semibold transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center gap-1 sm:gap-2">
+                                        <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-xs sm:text-sm">Отменить</span>
+                                    </button>
+                                    <button onClick={() => setIsPaused(!isPaused)} className={`${isPaused ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} hover:opacity-80 rounded-2xl py-3 sm:py-4 font-semibold transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center gap-1 sm:gap-2`}>
+                                        {isPaused ? <Play className="w-5 h-5 sm:w-6 sm:h-6" /> : <Pause className="w-5 h-5 sm:w-6 sm:h-6" />}
+                                        <span className="text-xs sm:text-sm">{isPaused ? 'Продолжить' : 'Пауза'}</span>
+                                    </button>
+                                    <button onClick={editCounter} className="bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-2xl py-3 sm:py-4 font-semibold transition-all transform hover:scale-105 active:scale-95 flex flex-col items-center gap-1 sm:gap-2">
+                                        <Edit3 className="w-5 h-5 sm:w-6 sm:h-6" /><span className="text-xs sm:text-sm">Править</span>
+                                    </button>
+                                </div>
+                                {recognition && (
+                                    <>
+                                        <button onClick={toggleVoiceControl} className={`w-full mt-3 sm:mt-4 ${isListening ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-blue-100 text-blue-700'} hover:opacity-80 rounded-2xl py-3 sm:py-4 font-semibold transition-all text-sm sm:text-base flex items-center justify-center gap-2`}>
+                                            <Mic className="w-5 h-5" />
+                                            {isListening ? '🎤 Слушаю... ("готово" / "назад")' : 'Включить голосовое управление'}
+                                        </button>
+                                        <button onClick={() => setVoiceFeedback(!voiceFeedback)} className={`w-full mt-2 ${voiceFeedback ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'} hover:opacity-80 rounded-2xl py-3 sm:py-4 font-semibold transition-all text-sm sm:text-base flex items-center justify-center gap-2`}>
+                                            {voiceFeedback ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                                            {voiceFeedback ? '🔊 Озвучка включена' : 'Включить озвучку'}
+                                        </button>
+                                    </>
+                                )}
+                                <button onClick={() => { if (confirm('Вернуться к настройке? Прогресс будет потерян.')) { setMode('setup'); setCurrentRow(0); setCurrentElement(0); setHistory([]); }}} className="w-full mt-3 sm:mt-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl py-3 sm:py-4 font-semibold transition-all text-sm sm:text-base">
+                                    ← Вернуться к настройке
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-3 sm:p-4">
+                    <div className="max-w-2xl mx-auto pb-20">
+                        <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Счётчик вязания</h1>
+                                    <p className="text-sm sm:text-base text-gray-500 mt-1">Создай свой паттерн</p>
+                                </div>
+                                <div className="text-4xl sm:text-6xl">🧶</div>
+                            </div>
+                        </div>
+
+                        {schemeMode === 'library' && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-bold text-gray-800">📚 Библиотека схем</h2>
+                                    <button onClick={() => setSchemeMode('main')} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
+                                </div>
+                                
+                                <button onClick={importSchemeFromFile} className="w-full mb-4 bg-gradient-to-r from-blue-100 to-teal-100 hover:from-blue-200 hover:to-teal-200 text-teal-700 rounded-2xl py-3 font-semibold text-base">
+                                    📥 Импортировать схему из файла
+                                </button>
+                                
+                                {availableSchemes.length === 0 ? (
+                                    <p className="text-center text-gray-500 py-8">Загрузка схем...</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {availableSchemes.map((scheme) => (
+                                            <div key={scheme.id} className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-3xl">{scheme.emoji}</span>
+                                                            <h3 className="text-lg font-bold text-gray-800">{scheme.name}</h3>
+                                                            {scheme.isLocal && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">Локальная</span>}
+                                                        </div>
+                                                        <p className="text-sm text-gray-600">Сложность: {scheme.difficulty}</p>
+                                                        <p className="text-sm text-gray-600">{scheme.totalParts} деталей • {scheme.totalRows} рядов</p>
+                                                    </div>
+                                                    <button onClick={() => loadScheme(scheme.id)} className="bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-4 py-2 font-semibold text-sm">
+                                                        Загрузить
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {schemeMode === 'scheme-details' && currentScheme && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-4xl">{currentScheme.emoji}</span>
+                                        <div>
+                                            <h2 className="text-xl font-bold text-gray-800">{currentScheme.name}</h2>
+                                            <p className="text-sm text-gray-500">Сложность: {currentScheme.difficulty}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {currentScheme.isLocal && (
+                                            <>
+                                                <button onClick={startEditingScheme} className="text-blue-500 hover:text-blue-700 text-xl" title="Редактировать">✏️</button>
+                                                <button onClick={() => deleteLocalScheme(currentScheme.id)} className="text-red-500 hover:text-red-700 text-xl" title="Удалить">🗑️</button>
+                                            </>
+                                        )}
+                                        <button onClick={() => { setSchemeMode('library'); setCurrentScheme(null); }} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
+                                    </div>
+                                </div>
+                                <div className="mb-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="text-sm font-semibold text-gray-700">Прогресс</div>
+                                        {Object.keys(schemeProgress).length > 0 && (
+                                            <button onClick={resetAllProgress} className="text-xs text-blue-600 hover:text-blue-800">🔄 Сбросить весь прогресс</button>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 bg-gray-200 rounded-full h-3">
+                                            <div className="bg-gradient-to-r from-green-500 to-teal-500 h-3 rounded-full" style={{width: ((Object.keys(schemeProgress).length / currentScheme.parts.reduce((sum, p) => sum + p.quantity, 0)) * 100) + '%'}}></div>
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700">{Object.keys(schemeProgress).length} / {currentScheme.parts.reduce((sum, p) => sum + p.quantity, 0)}</span>
+                                    </div>
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Детали:</h3>
+                                <div className="space-y-3">
+                                    {currentScheme.parts.map((part, partIndex) => (
+                                        <div key={partIndex} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4">
+                                            <div className="mb-2">
+                                                <h4 className="font-bold text-gray-800">{part.partName} × {part.quantity}</h4>
+                                                <p className="text-sm text-gray-600">{part.rows.length} рядов</p>
+                                            </div>
+                                            {part.quantity === 1 ? (
+                                                <div className="flex gap-2 mt-2">
+                                                    <button onClick={() => startKnittingPart(partIndex, 0)} disabled={schemeProgress[partIndex + '_0']} className={'flex-1 ' + (schemeProgress[partIndex + '_0'] ? 'bg-green-100 text-green-700' : 'bg-purple-500 hover:bg-purple-600 text-white') + ' rounded-xl py-2 font-semibold text-sm'}>
+                                                        {schemeProgress[partIndex + '_0'] ? '✅ Готово' : 'Начать вязать'}
+                                                    </button>
+                                                    {schemeProgress[partIndex + '_0'] && (
+                                                        <button onClick={() => resetPartProgress(partIndex, 0)} className="bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-xl px-3 py-2 text-xs">🔄</button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="mt-2 space-y-2">
+                                                    {Array.from({length: part.quantity}).map((_, instanceIndex) => (
+                                                        <div key={instanceIndex} className="flex gap-2">
+                                                            <button onClick={() => startKnittingPart(partIndex, instanceIndex)} disabled={schemeProgress[partIndex + '_' + instanceIndex]} className={'flex-1 ' + (schemeProgress[partIndex + '_' + instanceIndex] ? 'bg-green-100 text-green-700' : 'bg-purple-500 hover:bg-purple-600 text-white') + ' rounded-xl py-2 font-semibold text-sm'}>
+                                                                {schemeProgress[partIndex + '_' + instanceIndex] ? '✅ ' + part.partName + ' ' + (instanceIndex + 1) : part.partName + ' ' + (instanceIndex + 1)}
+                                                            </button>
+                                                            {schemeProgress[partIndex + '_' + instanceIndex] && (
+                                                                <button onClick={() => resetPartProgress(partIndex, instanceIndex)} className="bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-xl px-3 py-2 text-xs">🔄</button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {schemeMode === 'create-scheme' && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-bold text-gray-800">📝 Новая схема</h2>
+                                    <button onClick={() => setSchemeMode('main')} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Название</label>
+                                        <input type="text" value={newSchemeName} onChange={(e) => setNewSchemeName(e.target.value)} placeholder="Например: Мишка Тедди" className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Эмодзи</label>
+                                        <input type="text" value={newSchemeEmoji} onChange={(e) => setNewSchemeEmoji(e.target.value)} placeholder="🧸" className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none text-3xl text-center" maxLength={2}/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Сложность</label>
+                                        <select value={newSchemeDifficulty} onChange={(e) => setNewSchemeDifficulty(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none">
+                                            <option>Легкий</option>
+                                            <option>Средний</option>
+                                            <option>Сложный</option>
+                                        </select>
+                                    </div>
+                                    <button onClick={() => { if (!newSchemeName.trim()) { alert('Введите название схемы'); return; } setSchemeMode('add-parts'); }} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 font-bold">Далее →</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {schemeMode === 'add-parts' && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-bold text-gray-800">🧩 Детали схемы</h2>
+                                    <button onClick={() => setSchemeMode('create-scheme')} className="text-gray-500 hover:text-gray-700 text-sm">← Назад</button>
+                                </div>
+                                {schemeParts.length > 0 && (
+                                    <div className="mb-4 space-y-2">
+                                        <h3 className="text-sm font-semibold text-gray-700">Добавленные детали ({schemeParts.length}):</h3>
+                                        {schemeParts.map((part, idx) => (
+                                            <div key={idx} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 flex items-center justify-between">
+                                                <div>
+                                                    <span className="font-semibold text-gray-800">{part.partName} × {part.quantity}</span>
+                                                    <span className="text-sm text-gray-600 ml-2">({part.rows.length} рядов)</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => editPart(idx)} className="text-blue-600 hover:text-blue-800 text-xl">✏️</button>
+                                                    <button onClick={() => deletePart(idx)} className="text-red-600 hover:text-red-800 text-xl">🗑️</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-3">➕ Добавить деталь:</h3>
+                                    <div className="space-y-3">
+                                        <input type="text" value={currentPartName} onChange={(e) => setCurrentPartName(e.target.value)} placeholder="Название (например: Лапа, Голова)" className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none"/>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-medium text-gray-700 w-28">Количество:</span>
+                                            <button onClick={() => setCurrentPartQuantity(Math.max(1, currentPartQuantity - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5"><Minus className="w-4 h-4" /></button>
+                                            <span className="text-xl font-bold text-purple-600 w-10 text-center">{currentPartQuantity}</span>
+                                            <button onClick={() => setCurrentPartQuantity(currentPartQuantity + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5"><Plus className="w-4 h-4" /></button>
+                                        </div>
+                                        <button onClick={startCreatingPartPattern} className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-xl py-2 font-semibold">Создать паттерн для детали</button>
+                                    </div>
+                                </div>
+                                {schemeParts.length > 0 && (
+                                    <div className="space-y-2">
+                                        <button onClick={saveSchemeLocally} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 font-bold">💾 Сохранить в браузере</button>
+                                        <button onClick={exportSchemeToJSON} className="w-full bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white rounded-2xl py-3 font-bold">📥 Сохранить на устройство</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {schemeMode === 'edit-scheme' && editingScheme && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-bold text-gray-800">✏️ Редактирование схемы</h2>
+                                    <button onClick={cancelEditingScheme} className="text-gray-500 hover:text-gray-700 text-sm">❌ Отмена</button>
+                                </div>
+                                
+                                <div className="space-y-4 mb-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Название</label>
+                                        <input type="text" value={newSchemeName} onChange={(e) => setNewSchemeName(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Эмодзи</label>
+                                        <input type="text" value={newSchemeEmoji} onChange={(e) => setNewSchemeEmoji(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none text-3xl text-center" maxLength={2}/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Сложность</label>
+                                        <select value={newSchemeDifficulty} onChange={(e) => setNewSchemeDifficulty(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none">
+                                            <option>Легкий</option>
+                                            <option>Средний</option>
+                                            <option>Сложный</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {schemeParts.length > 0 && (
+                                    <div className="mb-4">
+                                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Детали ({schemeParts.length}):</h3>
+                                        <div className="space-y-2">
+                                            {schemeParts.map((part, idx) => (
+                                                <div key={idx} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 flex items-center justify-between">
+                                                    <div>
+                                                        <span className="font-semibold text-gray-800">{part.partName} × {part.quantity}</span>
+                                                        <span className="text-sm text-gray-600 ml-2">({part.rows.length} рядов)</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => editPart(idx)} className="text-blue-600 hover:text-blue-800 text-xl">✏️</button>
+                                                        <button onClick={() => deletePart(idx)} className="text-red-600 hover:text-red-800 text-xl">🗑️</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-3">➕ Добавить деталь:</h3>
+                                    <div className="space-y-3">
+                                        <input type="text" value={currentPartName} onChange={(e) => setCurrentPartName(e.target.value)} placeholder="Название детали" className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none"/>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-medium text-gray-700 w-28">Количество:</span>
+                                            <button onClick={() => setCurrentPartQuantity(Math.max(1, currentPartQuantity - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5"><Minus className="w-4 h-4" /></button>
+                                            <span className="text-xl font-bold text-purple-600 w-10 text-center">{currentPartQuantity}</span>
+                                            <button onClick={() => setCurrentPartQuantity(currentPartQuantity + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5"><Plus className="w-4 h-4" /></button>
+                                        </div>
+                                        <button onClick={startCreatingPartPattern} className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-xl py-2 font-semibold">Создать паттерн</button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <button onClick={saveEditedScheme} className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-2xl py-3 font-bold">💾 Сохранить изменения</button>
+                                    <button onClick={exportEditedScheme} className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-2xl py-3 font-bold">📥 Экспортировать схему</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {(schemeMode === 'main' || schemeMode === 'create-part-pattern' || (schemeMode === 'edit-scheme' && currentPartName)) && (
+                            <>
+                                {schemeMode === 'create-part-pattern' && (
+                                    <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <h2 className="text-xl font-bold text-gray-800">Паттерн: {currentPartName}</h2>
+                                                <p className="text-sm text-gray-500">Будет {currentPartQuantity} шт</p>
+                                            </div>
+                                            <button onClick={() => { if (confirm('Отменить создание паттерна?')) { setRows([]); setCurrentRowPattern([]); setSchemeMode('add-parts'); }}} className="text-gray-500 hover:text-gray-700 text-xl">❌</button>
+                                        </div>
+                                        {rows.length > 0 && (
+                                            <button onClick={savePartPattern} className="w-full mb-4 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-2xl py-3 font-bold">✅ Сохранить деталь</button>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {schemeMode === 'edit-scheme' && currentPartName && (
+                                    <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <h2 className="text-xl font-bold text-gray-800">Редактирование: {currentPartName}</h2>
+                                                <p className="text-sm text-gray-500">Будет {currentPartQuantity} шт</p>
+                                            </div>
+                                            <button onClick={() => { if (confirm('Отменить?')) { setRows([]); setCurrentRowPattern([]); setCurrentPartName(''); setEditingPartIndex(null); }}} className="text-gray-500 hover:text-gray-700 text-xl">❌</button>
+                                        </div>
+                                        {rows.length > 0 && (
+                                            <button onClick={savePartPattern} className="w-full mb-4 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-2xl py-3 font-bold">✅ Сохранить деталь</button>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {schemeMode === 'main' && (
+                                    <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                        <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3">📚 Схемы животных</h2>
+                                        <div className="space-y-2">
+                                            <button onClick={() => setSchemeMode('library')} className="w-full bg-gradient-to-r from-pink-100 to-purple-100 hover:from-pink-200 hover:to-purple-200 text-purple-700 rounded-2xl py-3 font-semibold text-base">Открыть библиотеку схем</button>
+                                            <button onClick={() => setSchemeMode('create-scheme')} className="w-full bg-gradient-to-r from-blue-100 to-teal-100 hover:from-blue-200 hover:to-teal-200 text-teal-700 rounded-2xl py-3 font-semibold text-base">Создать новую схему</button>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                    <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">{schemeMode === 'main' ? 'Или создай простой паттерн - ' : ''}Быстрые элементы</h2>
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                                {quickButtons.map((btn) => (
+                                    <button key={btn.value} onClick={() => addToPattern(btn.value)} className={`${btn.color} rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95`}>{btn.label}</button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                                <button onClick={addIncrease} className="bg-green-100 hover:bg-green-200 text-green-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Прибавка</button>
+                                <button onClick={addDecrease} className="bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Убавка</button>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                            <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Или введи свой элемент</h2>
+                            <div className="flex gap-2 sm:gap-3 mb-3">
+                                <input type="text" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addCustomElement()} placeholder="Например: пико, шишечка, пссн..." className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none text-base"/>
+                                <button onClick={addCustomElement} className="bg-purple-500 hover:bg-purple-600 text-white rounded-2xl px-5 sm:px-6 font-semibold text-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0">+</button>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm sm:text-base text-gray-700 font-medium w-24">Провязов:</span>
+                                    <button onClick={() => setCustomStitches(Math.max(1, customStitches - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5 transition-colors">
+                                        <Minus className="w-4 h-4" />
+                                    </button>
+                                    <span className="text-lg sm:text-xl font-bold text-purple-600 w-8 text-center">{customStitches}</span>
+                                    <button onClick={() => setCustomStitches(customStitches + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5 transition-colors">
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm sm:text-base text-gray-700 font-medium w-24">Баланс:</span>
+                                    <div className="flex gap-1">
+                                        {[-2, -1, 0, 1, 2].map(val => (
+                                            <button key={val} onClick={() => setCustomBalance(val)} className={(customBalance === val ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700') + ' hover:opacity-80 rounded-lg px-2 sm:px-3 py-1 font-semibold text-sm transition-all'}>
+                                                {val > 0 ? '+' + val : val}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                            <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">🎨 Смена цвета</h2>
+                            <div className="flex gap-2 sm:gap-3">
+                                <input type="text" value={colorInput} onChange={(e) => setColorInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addColorChange()} placeholder="Например: белый, бежевый, красный..." className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-2xl focus:border-purple-400 focus:outline-none text-base"/>
+                                <button onClick={addColorChange} className="bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white rounded-2xl px-5 sm:px-6 font-semibold text-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0">🎨</button>
+                            </div>
+                        </div>
+
+                        {currentRowPattern.length > 0 && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                                    <h2 className="text-base sm:text-lg font-semibold text-gray-700">Текущий паттерн</h2>
+                                    <button onClick={removeLastFromPattern} className="text-red-500 hover:text-red-700 transition-colors"><Minus /></button>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
+                                    {currentRowPattern.map((elem, idx) => (
+                                        elem.type === 'COLOR_CHANGE' ? (
+                                            <span key={idx} className="bg-gradient-to-r from-pink-100 to-orange-100 text-orange-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-sm sm:text-lg flex items-center gap-2">
+                                                🎨 → {elem.color}
+                                            </span>
+                                        ) : (
+                                            <span key={idx} className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-sm sm:text-lg flex items-center gap-2">
+                                                {elem.type}{elem.stitches > 1 && <span className="bg-purple-500 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">×{elem.stitches}</span>}
+                                            </span>
+                                        )
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                                    <span className="text-sm sm:text-base text-gray-700 font-medium">Повторить:</span>
+                                    <button onClick={() => setRepeatCount(Math.max(1, repeatCount - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5 sm:p-2 transition-colors"><Minus className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+                                    <span className="text-xl sm:text-2xl font-bold text-purple-600 w-10 sm:w-12 text-center">{repeatCount}</span>
+                                    <button onClick={() => setRepeatCount(repeatCount + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5 sm:p-2 transition-colors"><Plus className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+                                    <span className="text-sm sm:text-base text-gray-600">раз</span>
+                                </div>
+                                
+                                <div className="space-y-3 mb-3 sm:mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm sm:text-base text-gray-700 font-medium w-28">Ряд №:</span>
+                                        <button onClick={() => setCurrentRowNumber(Math.max(1, currentRowNumber - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5 sm:p-2 transition-colors"><Minus className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+                                        <span className="text-xl sm:text-2xl font-bold text-purple-600 w-10 sm:w-12 text-center">{currentRowNumber}</span>
+                                        <button onClick={() => setCurrentRowNumber(currentRowNumber + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-1.5 sm:p-2 transition-colors"><Plus className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm sm:text-base text-gray-700 font-medium w-28">Петель было:</span>
+                                        <input 
+                                            type="number" 
+                                            value={manualInitialStitches} 
+                                            onChange={(e) => setManualInitialStitches(e.target.value)}
+                                            placeholder="авто"
+                                            className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none text-base"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-blue-50 rounded-2xl p-3 mb-3">
+                                    <div className="text-sm text-gray-700">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span>💡</span>
+                                            <span className="font-semibold">
+                                                {currentRowNumber === 1 ? 'Первый ряд' : 
+                                                 manualInitialStitches.trim() !== '' ? `В предыдущем ряду: ${manualInitialStitches} петель` :
+                                                 rows.length > 0 ? `В предыдущем ряду: ${getCurrentRowStitches(rows.length - 1)} петель` : 
+                                                 `Введи сколько петель было в ряду ${currentRowNumber - 1}`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span>📊</span>
+                                            <span className="font-semibold">
+                                                {currentRowNumber === 1 || manualInitialStitches.trim() !== '' || rows.length > 0 ? (
+                                                    `В этом ряду станет: ${
+                                                        rows.length === 0 
+                                                            ? getFirstRowOutputStitches(currentRowPattern) * repeatCount
+                                                            : manualInitialStitches.trim() !== ''
+                                                                ? parseInt(manualInitialStitches) + getStitchBalance(currentRowPattern) * repeatCount
+                                                                : getCurrentRowStitches(rows.length - 1) + getStitchBalance(currentRowPattern) * repeatCount
+                                                    } петель`
+                                                ) : (
+                                                    'Расчёт после ввода начальных петель'
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={addRow} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 sm:py-4 font-bold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Добавить ряд</button>
+                            </div>
+                        )}
+
+                        {rows.length > 0 && (
+                            <div className="bg-white rounded-3xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                                <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">Ряды ({rows.length})</h2>
+                                <div className="space-y-2 sm:space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
+                                    {rows.map((row, idx) => {
+                                        const previousStitches = getPreviousRowStitches(idx);
+                                        const currentStitches = getCurrentRowStitches(idx);
+                                        return (
+                                            <div key={idx} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-3 sm:p-4">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <span className="font-bold text-purple-700 text-sm sm:text-base">Ряд {row.rowNumber}:</span>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => openRepeatRowDialog(idx)} className="text-blue-500 hover:text-blue-700 transition-colors" title="Повторить ряд">🔁</button>
+                                                        <button onClick={() => deleteRow(idx)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm mb-2">
+                                                    {row.pattern.map((elem, elemIdx) => (
+                                                        <span key={elemIdx} className="text-gray-700">{elem.type}{elem.stitches > 1 && <span className="text-purple-600 font-semibold"> — {elem.stitches} пров.</span>}{elemIdx < row.pattern.length - 1 && ','}</span>
+                                                    ))}
+                                                </div>
+                                                <div className="text-gray-500 text-xs sm:text-sm space-y-0.5">
+                                                    {idx === 0 ? (
+                                                        <p>Петель получится: {currentStitches}</p>
+                                                    ) : (
+                                                        <p>Было петель: {previousStitches} → Станет: {currentStitches}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button onClick={startKnitting} className="w-full mt-4 sm:mt-6 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-2xl py-4 sm:py-5 font-bold text-lg sm:text-xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 sm:gap-3">
+                                    <Play className="w-5 h-5 sm:w-6 sm:h-6" />Начать вязать!
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+                
+                {/* Модальное окно повторения ряда */}
+                {repeatRowIndex !== null && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">Повторить ряд</h2>
+                            <p className="text-gray-600 mb-4">Паттерн ряда {rows[repeatRowIndex].rowNumber}:</p>
+                            <div className="flex flex-wrap gap-2 mb-4 p-3 bg-gray-50 rounded-xl">
+                                {rows[repeatRowIndex].pattern.map((elem, idx) => (
+                                    <span key={idx} className="text-sm text-gray-700">
+                                        {elem.type === 'COLOR_CHANGE' ? '🎨 → ' + elem.color : elem.type}
+                                        {elem.stitches > 1 && ' ×' + elem.stitches}
+                                        {idx < rows[repeatRowIndex].pattern.length - 1 && ','}
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Повторить сколько раз:</label>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setRepeatRowCount(Math.max(1, repeatRowCount - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
+                                        <Minus className="w-5 h-5" />
+                                    </button>
+                                    <span className="text-2xl font-bold text-purple-600 w-16 text-center">{repeatRowCount}</span>
+                                    <button onClick={() => setRepeatRowCount(Math.min(20, repeatRowCount + 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-2">Создаст ряды: {rows.length + 1}-{rows.length + repeatRowCount}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={closeRepeatRowDialog} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-2xl py-3 font-semibold transition-colors">Отмена</button>
+                                <button onClick={confirmRepeatRow} className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 font-semibold transition-all">Создать</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<CrochetCounter />, document.getElementById('root'));
+    </script>
+</body>
+</html>
