@@ -152,10 +152,15 @@
             useEffect(() => { modeRef.current = mode; }, [mode]);
             useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
             
-            // Auto-save rows when they change
+            // Auto-save rows when they change (debounced)
             useEffect(() => {
                 if (currentSchemeId) {
-                    saveRowsForScheme(currentSchemeId, rows);
+                    // Небольшая задержка чтобы state точно обновился
+                    const timer = setTimeout(() => {
+                        saveRowsForScheme(currentSchemeId, rows);
+                        console.log('💾 Saved rows for', currentSchemeId, ':', rows.length, 'rows');
+                    }, 100);
+                    return () => clearTimeout(timer);
                 }
             }, [rows, currentSchemeId]);
             
