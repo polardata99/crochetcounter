@@ -112,6 +112,7 @@
             const [elementRepeatCount, setElementRepeatCount] = useState(1);
             const [isEditingRow, setIsEditingRow] = useState(false);
             const [editingRowNumber, setEditingRowNumber] = useState(null);
+            const [editingElementIndex, setEditingElementIndex] = useState(null);
             
             // Scheme states
             const [schemeMode, setSchemeMode] = useState('main');
@@ -395,15 +396,15 @@
             };
 
             const addToPattern = (element) => {
-                setCurrentRowPattern([...currentRowPattern, { type: element, stitches: 1, balance: 0, outputStitches: 1 }]);
+                setCurrentRowPattern([...currentRowPattern, { type: element, stitches: 1, balance: 0, outputStitches: 1, repeatCount: 1 }]);
             };
 
             const addIncrease = () => {
-                setCurrentRowPattern([...currentRowPattern, { type: 'пр', stitches: 1, balance: 1, outputStitches: 2 }]);
+                setCurrentRowPattern([...currentRowPattern, { type: 'пр', stitches: 1, balance: 1, outputStitches: 2, repeatCount: 1 }]);
             };
 
             const addDecrease = () => {
-                setCurrentRowPattern([...currentRowPattern, { type: 'уб', stitches: 1, balance: -1, outputStitches: 1 }]);
+                setCurrentRowPattern([...currentRowPattern, { type: 'уб', stitches: 1, balance: -1, outputStitches: 1, repeatCount: 1 }]);
             };
 
             const addCustomElement = () => {
@@ -438,7 +439,14 @@
 
             const addRow = () => {
                 if (currentRowPattern.length > 0) {
-                    const repeatedPattern = Array(repeatCount).fill(currentRowPattern).flat();
+                    // Разворачиваем repeatCount для каждого элемента
+                    const expandedPattern = currentRowPattern.flatMap(elem => {
+                        const count = elem.repeatCount || 1;
+                        return Array(count).fill({ ...elem, repeatCount: undefined });
+                    });
+                    
+                    // Применяем глобальное повторение ряда
+                    const repeatedPattern = Array(repeatCount).fill(expandedPattern).flat();
                     
                     // Проверка соответствия паттерна предыдущему ряду (пропускаем при редактировании)
                     if (!isEditingRow) {
@@ -487,10 +495,23 @@
                         manualStitches: manualInitialStitches.trim() !== '' ? parseInt(manualInitialStitches) : undefined
                     };
                     
-                    setRows([...rows, newRow]);
+                    // При редактировании вставляем на правильное место
+                    if (isEditingRow && editingRowNumber !== null) {
+                        const updatedRows = [...rows];
+                        updatedRows.splice(editingRowNumber, 0, newRow);
+                        setRows(updatedRows);
+                    } else {
+                        setRows([...rows, newRow]);
+                    }
+                    
                     setCurrentRowPattern([]);
                     setRepeatCount(1);
-                    setCurrentRowNumber(currentRowNumber + 1);
+                    
+                    // Увеличиваем номер только если не редактируем
+                    if (!isEditingRow) {
+                        setCurrentRowNumber(currentRowNumber + 1);
+                    }
+                    
                     setManualInitialStitches('');
                     
                     // Сбрасываем флаг редактирования
@@ -505,13 +526,15 @@
                 const row = rows[index];
                 
                 // Загружаем паттерн ряда в редактор
-                setCurrentRowPattern(row.pattern);
+                // Восстанавливаем repeatCount из сжатого паттерна
+                const patternWithRepeatCount = row.pattern.map(elem => ({ ...elem, repeatCount: 1 }));
+                setCurrentRowPattern(patternWithRepeatCount);
                 setCurrentRowNumber(row.rowNumber);
                 setManualInitialStitches(row.manualStitches || '');
                 
-                // Устанавливаем флаг редактирования
+                // Устанавливаем флаг редактирования с индексом
                 setIsEditingRow(true);
-                setEditingRowNumber(row.rowNumber);
+                setEditingRowNumber(index); // Сохраняем индекс вместо номера
                 
                 // Удаляем ряд из списка (будет пересоздан при сохранении)
                 setRows(rows.filter((_, i) => i !== index));
@@ -562,6 +585,15 @@
                 grouped.push(currentGroup);
                 
                 return grouped;
+            };
+            
+            const updateElementRepeatCount = (index, newCount) => {
+                if (newCount >= 1) {
+                    const updated = [...currentRowPattern];
+                    updated[index] = { ...updated[index], repeatCount: newCount };
+                    setCurrentRowPattern(updated);
+                }
+                setEditingElementIndex(null);
             };
             
             const openRepeatRowDialog = (index) => {
@@ -1631,12 +1663,12 @@
                                     <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">{schemeMode === 'main' ? 'Или создай простой паттерн - ' : ''}Быстрые элементы</h2>
                             <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
                                 {quickButtons.map((btn) => (
-                                    <button key={btn.value} onClick={() => openElementModal({ type: btn.value, stitches: 1, balance: 0, outputStitches: 1 })} className={(btn.color) + ' rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95'}>{btn.label}</button>
+                                    <button key={btn.value} onClick={() => addToPattern(btn.value)} className={(btn.color) + ' rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95'}>{btn.label}</button>
                                 ))}
                             </div>
                             <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                                <button onClick={() => openElementModal({ type: 'пр', stitches: 1, balance: 1, outputStitches: 2 })} className="bg-green-100 hover:bg-green-200 text-green-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Прибавка</button>
-                                <button onClick={() => openElementModal({ type: 'уб', stitches: 1, balance: -1, outputStitches: 1 })} className="bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Убавка</button>
+                                <button onClick={addIncrease} className="bg-green-100 hover:bg-green-200 text-green-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Прибавка</button>
+                                <button onClick={addDecrease} className="bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Убавка</button>
                             </div>
                         </div>
 
@@ -1692,7 +1724,34 @@
                                             </span>
                                         ) : (
                                             <span key={idx} className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-sm sm:text-lg flex items-center gap-2">
-                                                {elem.type}{elem.stitches > 1 && <span className="bg-purple-500 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">×{elem.stitches}</span>}
+                                                {elem.type}
+                                                {elem.stitches > 1 && <span className="bg-purple-500 text-white text-xs px-1.5 sm:px-2 py-0.5 rounded-full">×{elem.stitches}</span>}
+                                                <span className="text-purple-600 font-semibold flex items-center gap-1">
+                                                    ×
+                                                    {editingElementIndex === idx ? (
+                                                        <input
+                                                            type="number"
+                                                            value={elem.repeatCount || 1}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === '') return;
+                                                                updateElementRepeatCount(idx, parseInt(val) || 1);
+                                                            }}
+                                                            onBlur={() => setEditingElementIndex(null)}
+                                                            onKeyPress={(e) => e.key === 'Enter' && setEditingElementIndex(null)}
+                                                            autoFocus
+                                                            className="w-12 text-center border-b-2 border-purple-600 bg-transparent focus:outline-none"
+                                                            min="1"
+                                                        />
+                                                    ) : (
+                                                        <span 
+                                                            onClick={() => setEditingElementIndex(idx)}
+                                                            className="cursor-pointer hover:underline"
+                                                        >
+                                                            {elem.repeatCount || 1}
+                                                        </span>
+                                                    )}
+                                                </span>
                                             </span>
                                         )
                                     ))}
@@ -1811,36 +1870,6 @@
                     </>
                 )}
                 
-                {/* Модальное окно добавления элемента */}
-                {elementModalOpen && selectedElement && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4">Добавить {selectedElement.type.toUpperCase()}</h2>
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Сколько раз:</label>
-                                <div className="flex items-center gap-3">
-                                    <button onClick={() => setElementRepeatCount(Math.max(1, elementRepeatCount - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
-                                        <Minus className="w-5 h-5" />
-                                    </button>
-                                    <input 
-                                        type="number" 
-                                        value={elementRepeatCount} 
-                                        onChange={(e) => setElementRepeatCount(Math.max(1, parseInt(e.target.value) || 1))}
-                                        className="text-2xl font-bold text-purple-600 w-24 text-center border-2 border-gray-200 rounded-xl px-2 py-1 focus:border-purple-400 focus:outline-none"
-                                        min="1"
-                                    />
-                                    <button onClick={() => setElementRepeatCount(elementRepeatCount + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
-                                        <Plus className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="flex gap-3">
-                                <button onClick={closeElementModal} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-2xl py-3 font-semibold transition-colors">Отмена</button>
-                                <button onClick={confirmAddElement} className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 font-semibold transition-all">Добавить</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
                 
                 {/* Модальное окно повторения ряда */}
                 {repeatRowIndex !== null && (
