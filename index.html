@@ -1824,7 +1824,12 @@
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span>🔢</span>
                                                 <span className="font-semibold">
-                                                    Паттерн требует: {currentRowPattern.reduce((sum, el) => el.isMarker ? sum : sum + (el.outputStitches - el.balance), 0) * repeatCount} петель
+                                                    Паттерн требует: {currentRowPattern.reduce((sum, el) => {
+                                                        if (el.isMarker) return sum;
+                                                        const inputStitches = el.outputStitches - el.balance;
+                                                        const elRepeat = el.repeatCount || 1;
+                                                        return sum + (inputStitches * elRepeat);
+                                                    }, 0) * repeatCount} петель
                                                 </span>
                                             </div>
                                         )}
