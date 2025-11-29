@@ -107,6 +107,11 @@
             const [repeatRowIndex, setRepeatRowIndex] = useState(null);
             const [repeatRowCount, setRepeatRowCount] = useState(1);
             const [voiceFeedback, setVoiceFeedback] = useState(false);
+            const [elementModalOpen, setElementModalOpen] = useState(false);
+            const [selectedElement, setSelectedElement] = useState(null);
+            const [elementRepeatCount, setElementRepeatCount] = useState(1);
+            const [isEditingRow, setIsEditingRow] = useState(false);
+            const [editingRowNumber, setEditingRowNumber] = useState(null);
             
             // Scheme states
             const [schemeMode, setSchemeMode] = useState('main');
@@ -435,26 +440,28 @@
                 if (currentRowPattern.length > 0) {
                     const repeatedPattern = Array(repeatCount).fill(currentRowPattern).flat();
                     
-                    // Проверка соответствия паттерна предыдущему ряду
-                    const previousOutput = manualInitialStitches.trim() !== '' 
-                        ? parseInt(manualInitialStitches)
-                        : (rows.length > 0 ? getCurrentRowStitches(rows.length - 1) : 0);
-                    
-                    if (previousOutput > 0) {
-                        const requiredInput = repeatedPattern.reduce((sum, element) => {
-                            if (element.isMarker) return sum; // Пропускаем маркеры
-                            const inputStitches = element.outputStitches - element.balance;
-                            return sum + inputStitches;
-                        }, 0);
+                    // Проверка соответствия паттерна предыдущему ряду (пропускаем при редактировании)
+                    if (!isEditingRow) {
+                        const previousOutput = manualInitialStitches.trim() !== '' 
+                            ? parseInt(manualInitialStitches)
+                            : (rows.length > 0 ? getCurrentRowStitches(rows.length - 1) : 0);
                         
-                        if (requiredInput !== previousOutput) {
-                            alert(
-                                '❌ Ошибка в паттерне!\n\n' +
-                                'Паттерн требует: ' + requiredInput + ' петель\n' +
-                                'В предыдущем ряду: ' + previousOutput + ' петель\n\n' +
-                                'Исправьте паттерн или количество петель!'
-                            );
-                            return;
+                        if (previousOutput > 0) {
+                            const requiredInput = repeatedPattern.reduce((sum, element) => {
+                                if (element.isMarker) return sum; // Пропускаем маркеры
+                                const inputStitches = element.outputStitches - element.balance;
+                                return sum + inputStitches;
+                            }, 0);
+                            
+                            if (requiredInput !== previousOutput) {
+                                alert(
+                                    '❌ Ошибка в паттерне!\n\n' +
+                                    'Паттерн требует: ' + requiredInput + ' петель\n' +
+                                    'В предыдущем ряду: ' + previousOutput + ' петель\n\n' +
+                                    'Исправьте паттерн или количество петель!'
+                                );
+                                return;
+                            }
                         }
                     }
                     
@@ -485,6 +492,10 @@
                     setRepeatCount(1);
                     setCurrentRowNumber(currentRowNumber + 1);
                     setManualInitialStitches('');
+                    
+                    // Сбрасываем флаг редактирования
+                    setIsEditingRow(false);
+                    setEditingRowNumber(null);
                 }
             };
 
@@ -498,8 +509,59 @@
                 setCurrentRowNumber(row.rowNumber);
                 setManualInitialStitches(row.manualStitches || '');
                 
+                // Устанавливаем флаг редактирования
+                setIsEditingRow(true);
+                setEditingRowNumber(row.rowNumber);
+                
                 // Удаляем ряд из списка (будет пересоздан при сохранении)
                 setRows(rows.filter((_, i) => i !== index));
+            };
+            
+            const openElementModal = (element) => {
+                setSelectedElement(element);
+                setElementRepeatCount(1);
+                setElementModalOpen(true);
+            };
+            
+            const closeElementModal = () => {
+                setElementModalOpen(false);
+                setSelectedElement(null);
+                setElementRepeatCount(1);
+            };
+            
+            const confirmAddElement = () => {
+                if (selectedElement && elementRepeatCount > 0) {
+                    for (let i = 0; i < elementRepeatCount; i++) {
+                        setCurrentRowPattern(prev => [...prev, selectedElement]);
+                    }
+                    closeElementModal();
+                }
+            };
+            
+            const groupConsecutiveElements = (pattern) => {
+                if (pattern.length === 0) return [];
+                
+                const grouped = [];
+                let currentGroup = { element: pattern[0], count: 1 };
+                
+                for (let i = 1; i < pattern.length; i++) {
+                    const current = pattern[i];
+                    const prev = pattern[i - 1];
+                    
+                    // Проверяем идентичность элементов
+                    if (current.type === prev.type && 
+                        current.stitches === prev.stitches && 
+                        current.balance === prev.balance &&
+                        !current.isMarker) {
+                        currentGroup.count++;
+                    } else {
+                        grouped.push(currentGroup);
+                        currentGroup = { element: current, count: 1 };
+                    }
+                }
+                grouped.push(currentGroup);
+                
+                return grouped;
             };
             
             const openRepeatRowDialog = (index) => {
@@ -1569,12 +1631,12 @@
                                     <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">{schemeMode === 'main' ? 'Или создай простой паттерн - ' : ''}Быстрые элементы</h2>
                             <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
                                 {quickButtons.map((btn) => (
-                                    <button key={btn.value} onClick={() => addToPattern(btn.value)} className={`${btn.color} rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95`}>{btn.label}</button>
+                                    <button key={btn.value} onClick={() => openElementModal({ type: btn.value, stitches: 1, balance: 0, outputStitches: 1 })} className={(btn.color) + ' rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95'}>{btn.label}</button>
                                 ))}
                             </div>
                             <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                                <button onClick={addIncrease} className="bg-green-100 hover:bg-green-200 text-green-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Прибавка</button>
-                                <button onClick={addDecrease} className="bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Убавка</button>
+                                <button onClick={() => openElementModal({ type: 'пр', stitches: 1, balance: 1, outputStitches: 2 })} className="bg-green-100 hover:bg-green-200 text-green-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Прибавка</button>
+                                <button onClick={() => openElementModal({ type: 'уб', stitches: 1, balance: -1, outputStitches: 1 })} className="bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl py-3 sm:py-4 px-3 sm:px-4 font-semibold text-base sm:text-lg transition-all transform hover:scale-105 active:scale-95">Убавка</button>
                             </div>
                         </div>
 
@@ -1721,8 +1783,13 @@
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm mb-2">
-                                                    {row.pattern.map((elem, elemIdx) => (
-                                                        <span key={elemIdx} className="text-gray-700">{elem.type}{elem.stitches > 1 && <span className="text-purple-600 font-semibold"> — {elem.stitches} пров.</span>}{elemIdx < row.pattern.length - 1 && ','}</span>
+                                                    {groupConsecutiveElements(row.pattern).map((group, elemIdx) => (
+                                                        <span key={elemIdx} className="text-gray-700">
+                                                            {group.element.type === 'COLOR_CHANGE' ? '🎨 → ' + group.element.color : group.element.type}
+                                                            {group.count > 1 && <span className="text-purple-600 font-semibold"> × {group.count}</span>}
+                                                            {group.element.stitches > 1 && !group.element.isMarker && <span className="text-purple-600 font-semibold"> ({group.element.stitches} пров.)</span>}
+                                                            {elemIdx < groupConsecutiveElements(row.pattern).length - 1 && ', '}
+                                                        </span>
                                                     ))}
                                                 </div>
                                                 <div className="text-gray-500 text-xs sm:text-sm space-y-0.5">
@@ -1742,6 +1809,37 @@
                             </div>
                         )}
                     </>
+                )}
+                
+                {/* Модальное окно добавления элемента */}
+                {elementModalOpen && selectedElement && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">Добавить {selectedElement.type.toUpperCase()}</h2>
+                            <div className="mb-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Сколько раз:</label>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setElementRepeatCount(Math.max(1, elementRepeatCount - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
+                                        <Minus className="w-5 h-5" />
+                                    </button>
+                                    <input 
+                                        type="number" 
+                                        value={elementRepeatCount} 
+                                        onChange={(e) => setElementRepeatCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                        className="text-2xl font-bold text-purple-600 w-24 text-center border-2 border-gray-200 rounded-xl px-2 py-1 focus:border-purple-400 focus:outline-none"
+                                        min="1"
+                                    />
+                                    <button onClick={() => setElementRepeatCount(elementRepeatCount + 1)} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={closeElementModal} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-2xl py-3 font-semibold transition-colors">Отмена</button>
+                                <button onClick={confirmAddElement} className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-3 font-semibold transition-all">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
                 )}
                 
                 {/* Модальное окно повторения ряда */}
@@ -1765,7 +1863,14 @@
                                     <button onClick={() => setRepeatRowCount(Math.max(1, repeatRowCount - 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
                                         <Minus className="w-5 h-5" />
                                     </button>
-                                    <span className="text-2xl font-bold text-purple-600 w-16 text-center">{repeatRowCount}</span>
+                                    <input 
+                                        type="number" 
+                                        value={repeatRowCount} 
+                                        onChange={(e) => setRepeatRowCount(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                                        className="text-2xl font-bold text-purple-600 w-24 text-center border-2 border-gray-200 rounded-xl px-2 py-1 focus:border-purple-400 focus:outline-none"
+                                        min="1"
+                                        max="20"
+                                    />
                                     <button onClick={() => setRepeatRowCount(Math.min(20, repeatRowCount + 1))} className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors">
                                         <Plus className="w-5 h-5" />
                                     </button>
